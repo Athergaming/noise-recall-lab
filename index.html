@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Noise &amp; Recall Lab</title>
+  <meta name="description" content="SDG 4 experiment: does background noise level affect serial recall of digits?">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 11v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </span>
+      <div>
+        <div class="brand-name">Noise &amp; Recall Lab</div>
+        <div class="brand-sub">SDG 4 · Quality Education</div>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab" data-view="run">Run test</button>
+      <button class="tab" data-view="calibrate">Calibrate &amp; settings</button>
+      <button class="tab" data-view="results">Results</button>
+      <button class="tab" data-view="guide">How to</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= RUN ================= -->
+    <section id="view-run" class="view" hidden>
+      <div class="page-head">
+        <h1>Run a participant</h1>
+        <p class="lede">Each sequence of <span data-setting="sequenceLength"></span> digits is shown for <span data-setting="showSeconds"></span> s, then the participant types it back in <span data-setting="recallSeconds"></span> s. Background talking plays through the AirPods at <span data-setting="noiseLevels"></span> dB(A), plus a quiet control.</p>
+        <div class="sync-status"></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>1 · Participant</h2>
+          <label class="field">
+            <span>Group name <small>(e.g. "Riya's group" — keeps your P1, P2… apart from other groups)</small></span>
+            <input id="group-name" type="text" autocomplete="off" placeholder="Your group name" maxlength="40">
+          </label>
+          <label class="field">
+            <span>Participant code <small>(no names)</small></span>
+            <input id="participant-code" type="text" autocomplete="off" placeholder="P1" maxlength="20">
+          </label>
+          <label class="field">
+            <span>Noise-level order</span>
+            <select id="order-group"></select>
+          </label>
+          <p id="order-preview" class="hint"></p>
+          <label class="check">
+            <input id="consent" type="checkbox">
+            <span>This participant has given <b>written consent</b> and knows they can stop at any time.</span>
+          </label>
+          <div id="duplicate-warning" class="notice warn" hidden></div>
+          <div class="actions">
+            <button id="start-session" class="btn primary">Start test</button>
+            <button id="start-pilot" class="btn">Run pilot (choose sequence length)</button>
+          </div>
+          <p class="hint" id="plan-summary"></p>
+        </div>
+
+        <div class="card">
+          <h2>2 · Headphone check</h2>
+          <ul class="checklist">
+            <li><label class="check"><input type="checkbox"><span>AirPods in, ear tips fit (both buds)</span></label></li>
+            <li><label class="check"><input type="checkbox"><span>Noise Control = <b>Noise Cancellation</b> (not Adaptive/Transparency)</span></label></li>
+            <li><label class="check"><input type="checkbox"><span>Conversation Awareness and Personalized Volume <b>off</b></span></label></li>
+            <li><label class="check"><input type="checkbox"><span>Volume set to the calibrated setting: <b id="volume-note-display">not recorded</b></span></label></li>
+            <li><label class="check"><input type="checkbox"><span>Do Not Disturb on, other apps quiet</span></label></li>
+          </ul>
+          <p class="hint">Websites can't change your device volume, so set it by hand and don't touch it for the whole experiment.</p>
+          <div class="actions">
+            <button class="btn small" data-ear="left">🔈 Left ear beep</button>
+            <button class="btn small" data-ear="right">Right ear beep 🔈</button>
+          </div>
+          <div id="calibration-status" class="cal-chips"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Recent sessions on this device</h2>
+        <div id="recent-sessions" class="table-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ================= CALIBRATE ================= -->
+    <section id="view-calibrate" class="view" hidden>
+      <div class="page-head">
+        <h1>Calibrate &amp; settings</h1>
+        <p class="lede">Physics job: make "60 dB" really mean 60 dB(A) in the ear. Calibrate once on the device and volume you'll test with. Calibration is saved on each device separately.</p>
+      </div>
+
+      <div class="card">
+        <h2>Device volume</h2>
+        <label class="field">
+          <span>Write down the exact volume you calibrated at (so everyone uses the same)</span>
+          <input id="volume-note" type="text" placeholder="e.g. MacBook volume 10 of 16 bars · AirPods Pro 3 · Noise Cancellation">
+        </label>
+        <div class="notice">
+          <b>How it works:</b> press <i>Play at <span class="top-level"></span> dB</i>, measure with the meter, type in what it reads, press <i>Save</i>. The site then works out the exact volume for every level.
+          The steps between levels (for example 40 → 50 → 60) are set mathematically, so they are exact even if the meter is a little off.
+        </div>
+        <div id="calibration-rows"></div>
+        <div class="actions">
+          <button id="stop-all" class="btn">■ Stop sound</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h2>Quiet control</h2>
+          <label class="field">
+            <span>Measured level of the quiet condition, dB(A) — used as the x-value for "Quiet" on graphs</span>
+            <input id="quiet-db" type="number" step="0.5" min="0" max="80">
+          </label>
+          <p class="hint">Measure the room at the participant's seat with nothing playing. With noise cancellation on, the level in the ear is even lower — mention this in your write-up.</p>
+        </div>
+        <div class="card">
+          <h2>Experiment settings</h2>
+          <div class="form-grid">
+            <label class="field"><span>Digits per sequence</span><input id="set-length" type="number" min="3" max="30"></label>
+            <label class="field"><span>Sequences per noise level</span><input id="set-per-level" type="number" min="1" max="15"></label>
+            <label class="field"><span>Show time (s)</span><input id="set-show" type="number" min="2" max="60"></label>
+            <label class="field"><span>Recall time (s)</span><input id="set-recall" type="number" min="5" max="120"></label>
+            <label class="field"><span>Break between levels (s)</span><input id="set-break" type="number" min="0" max="300"></label>
+            <label class="field"><span>Noise levels, dB(A)</span><input id="set-levels" type="text" placeholder="40, 50, 60, 70, 80, 90"></label>
+          </div>
+          <div class="field"><span>Noise types</span>
+            <div class="type-choices">
+              <label class="check"><input type="checkbox" data-noise-type="talking"><span>Talking</span></label>
+              <label class="check"><input type="checkbox" data-noise-type="white"><span>White noise</span></label>
+              <label class="check"><input type="checkbox" data-noise-type="construction"><span>Construction</span></label>
+            </div>
+          </div>
+          <p class="hint">These settings are saved on this device. Everyone gets the same defaults, so only change them if your whole class agrees.</p>
+          <div class="actions">
+            <button id="save-settings" class="btn primary">Save settings</button>
+            <button id="reset-settings" class="btn">Reset to defaults</button>
+          </div>
+          <p id="settings-summary" class="hint"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <details>
+          <summary><h2 class="inline">Sequence bank (print as a paper backup)</h2></summary>
+          <p class="hint">Every participant sees the same bank. The sets rotate between noise levels by order group, so each set is heard at every level across the group.</p>
+          <div id="sequence-bank"></div>
+          <div class="actions"><button class="btn small" onclick="window.print()">Print</button></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ================= RESULTS ================= -->
+    <section id="view-results" class="view" hidden>
+      <div class="page-head row">
+        <div>
+          <h1>Results</h1>
+          <p class="lede">Everyone's results, combined. Updates automatically after every trial.</p>
+          <div class="sync-status"></div>
+        </div>
+      </div>
+      <div class="filter-bar" id="filter-bar"></div>
+      <div id="results-body"></div>
+      <div class="card">
+        <h2>Data</h2>
+        <div class="actions wrap">
+          <button id="export-csv" class="btn primary">⬇ Export trials (CSV)</button>
+          <button id="export-summary" class="btn">⬇ Summary table (CSV)</button>
+          <label class="btn">⬆ Import CSV<input id="import-csv" type="file" accept=".csv,text/csv" hidden></label>
+          <button id="load-demo" class="btn">Load demo data</button>
+          <button id="clear-demo" class="btn">Remove demo data</button>
+          <button id="delete-all" class="btn danger">Delete this device's data…</button>
+        </div>
+        <p class="hint">CSV opens in Google Sheets, Excel or Numbers. Export saves what's shown above (everyone or this device). Import adds trials from a CSV and uploads them. Deleting a trial from the shared database needs the admin passcode.</p>
+        <details>
+          <summary>All trials (raw data)</summary>
+          <div id="raw-table" class="table-wrap"></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ================= GUIDE ================= -->
+    <section id="view-guide" class="view prose" hidden>
+      <div class="page-head">
+        <h1>How to run the experiment</h1>
+        <p class="lede">Question: does the sound level (dB) of continuous background noise affect the ability to recall a sequence of digits in the correct order?</p>
+      </div>
+
+      <div class="card">
+        <h2>Before test day — one time setup</h2>
+        <ol>
+          <li><b>Pick the device.</b> Use the same laptop (or iPad) and the same AirPods Pro for everyone in your group.</li>
+          <li><b>AirPods settings</b> (iPhone: Settings → your AirPods; Mac: System Settings → your AirPods):
+            <ul>
+              <li>Noise Control: <b>Noise Cancellation</b> — blocks room noise so the quiet condition is really quiet.</li>
+              <li><b>Conversation Awareness: off</b> — otherwise the volume drops whenever someone talks.</li>
+              <li><b>Personalized Volume: off</b> — otherwise the volume changes by itself.</li>
+              <li>Spatial Audio / head tracking: off.</li>
+              <li>iPhone/iPad only: Settings → Sounds &amp; Haptics → Headphone Safety → Reduce Loud Audio: off (it would cap the 90 dB level).</li>
+            </ul>
+          </li>
+          <li><b>Set a fixed volume</b> and write it on the Calibrate tab. Never change it afterwards. If you have to, calibrate again.</li>
+          <li><b>Calibrate</b> (Calibrate tab), see below.</li>
+          <li><b>Pilot test (optional):</b> Run tab → <i>Run pilot</i> with someone who is not a participant. It tries lengths around the current setting in quiet and suggests one that is hard but not impossible (about 75% correct).</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>Calibration — for the physics student</h2>
+        <p>A website can't know how loud your headphones are, so we measure it once.</p>
+        <h3>Option A — best: iPhone or iPad Hearing meter</h3>
+        <p>If this site is opened on an iPhone/iPad with the AirPods connected, add the <b>Hearing</b> control to Control Center. While sound plays, it shows the live headphone level in dB. Apple knows the AirPods' output, so this is fairly accurate. Press Play, open Control Center, read the level, type it in, and press Save.</p>
+        <h3>Option B — laptop + sound meter app</h3>
+        <p>Use a decibel meter app set to A-weighting (dB(A)), in LAeq/average mode. Hold one AirPod's speaker right against the phone's microphone and cup your hand around both to seal it. Let it average for about 15 seconds, then type in the reading.</p>
+        <p class="hint">Limitation to mention: a phone app is only accurate to about ±3 dB, and measuring a bud outside the ear isn't the same as inside it. The steps between our levels are still exact because the computer sets them mathematically.</p>
+        <h3>Physics: why dB is logarithmic</h3>
+        <p>Decibels compare sound intensity on a logarithmic scale: L = 10·log₁₀(I / I₀). Every +10 dB means 10× the intensity, and sounds roughly twice as loud. So 90 dB has 100 000× the intensity of 40 dB, not 2.25×. In code, a gain of G dB multiplies the sound wave's amplitude by 10^(G/20).</p>
+        <p>Safety: the loudest level, 90 dB(A), is played for only a few minutes. Hearing-safety guidance (NIOSH) allows about 2.5 hours a day at 90 dB(A), so this is safe, but it is loud: remind participants they can stop at any time. The site never plays above 90 dB(A).</p>
+      </div>
+
+      <div class="card">
+        <h2>Test day — per participant (~35 minutes)</h2>
+        <ol>
+          <li>Get written consent. Give the participant a code (P1, P2…). Never type names.</li>
+          <li>Run tab: enter your <b>group name</b> (same spelling every time) and the code, keep the order on <i>Auto</i> (the site gives each new person in your group the next order A, B, C…), tick consent, and go through the headphone check.</li>
+          <li>Press <b>Start test</b> and give the laptop to the participant. They press <b>Start</b> for each block.</li>
+          <li>Each trial: noise fades in → <span data-setting="sequenceLength"></span> digits show for <span data-setting="showSeconds"></span> s → digits hide → type the digits in order within <span data-setting="recallSeconds"></span> s. If you don't remember a digit, skip it with <kbd>Space</kbd> or <kbd>→</kbd> so the others stay in the right place.</li>
+          <li>After each noise level there is a <span data-setting="breakSeconds"></span>-second break (AirPods stay in).</li>
+          <li>Every result is saved on the device and uploaded to the shared database straight away. If the Wi-Fi drops, it uploads later by itself — just don't clear the browser data before it says all results are saved.</li>
+          <li>The participant can stop at any time with <b>Stop</b> (or <kbd>Esc</kbd>). Trials already done are kept.</li>
+          <li>Wipe the AirPod tips between participants.</li>
+        </ol>
+      </div>
+
+      <div class="card">
+        <h2>What the design controls</h2>
+        <ul>
+          <li><b>Independent variable:</b> noise level — Quiet, <span data-setting="noiseLevels"></span> dB(A).</li>
+          <li><b>Dependent variable:</b> serial recall score = digits in the correct position (percentage).</li>
+          <li><b>Controlled:</b> the same device, headphones, volume, sequence length, show time and recall time for everyone. In every sequence a digit is never next to itself or a neighbouring number (like 4-5) and is used at most twice, so difficulty is similar.</li>
+          <li><b>Counterbalancing:</b> a Latin square changes the order of the noise levels for each participant, so practice and tiredness don't favour one level. Sequence sets rotate across levels too.</li>
+          <li><b>Noise type:</b> we use one type — a real recording of people talking — so the only thing that changes is the loudness. (White noise and construction can be switched on in settings to compare types.)</li>
+          <li><b>Why talking:</b> research shows that <i>changing</i> sounds, especially speech, disrupt serial recall more than steady sounds — and talking is the most common distraction in classrooms.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>For the CSP write-up — where the code does the work</h2>
+        <ul>
+          <li><code>js/stats.js → scoreResponse()</code> — goes through the sequence and response digit by digit, giving a point for each correct position.</li>
+          <li><code>js/stats.js → analyzeTrials()</code> — groups the list of trials by noise level, then works out the mean, standard deviation and standard error, a line of best fit (regression), and ANOVA p-values.</li>
+          <li><code>js/sequences.js → buildSessionPlan()</code> — makes the random but balanced plan for each participant (Latin square order + rotating sequence sets).</li>
+          <li><code>js/noise.js</code> — loops the real recordings (and generates white noise from random numbers), and sets their loudness in decibels.</li>
+          <li><code>js/charts.js</code> — draws the graphs as SVG.</li>
+          <li><code>js/cloud.js</code> — uploads each trial to the shared database (Supabase) and downloads everyone's trials for the Results page.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Sound credits</h2>
+        <ul>
+          <li><b>Talking:</b> “Group discussion 1” and “Group discussion 3” by ezwa (PDSounds), Wikimedia Commons, public domain.</li>
+          <li><b>Construction (optional):</b> “Baustelle am Mödlingbach” by TofuVegan, Wikimedia Commons, licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>. Changed: made mono, trimmed, looped and volume-levelled.</li>
+          <li><b>White noise (optional):</b> generated by our code.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= TEST STAGE (full screen during a session) ================= -->
+  <div id="stage" class="stage" hidden>
+    <div class="stage-top">
+      <div id="stage-progress" class="stage-progress"></div>
+      <button id="stage-stop" class="btn small ghost">Stop</button>
+    </div>
+    <div id="stage-content" class="stage-content"></div>
+  </div>
+
+  <script src="js/audio-data.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/sequences.js"></script>
+  <script src="js/noise.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

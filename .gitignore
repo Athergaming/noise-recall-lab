@@ -1,0 +1,5 @@
+.DS_Store
+ADMIN-PASSCODE.txt
+.env*
+.vercel
+tools/sources/
